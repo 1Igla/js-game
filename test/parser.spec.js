@@ -233,7 +233,7 @@ describe('Класс LevelParser', () => {
       expect(actors.some(actor => actor.pos.x === 0 && actor.pos.y === 0)).to.be.true;
       expect(actors.some(actor => actor.pos.x === 4 && actor.pos.y === 0)).to.be.true;
       expect(actors.some(actor => actor.pos.x === 2 && actor.pos.y === 1)).to.be.true;
-      expect(actors.some(actor => actor.pos.x === 0 && actor.pos.y === 0)).to.be.true;
+      expect(actors.some(actor => actor.pos.x === 0 && actor.pos.y === 2)).to.be.true;
       expect(actors.some(actor => actor.pos.x === 4 && actor.pos.y === 2)).to.be.true;
     });
   });

@@ -294,18 +294,15 @@ class VerticalFireball extends Fireball{
 };
 
 class FireRain extends Fireball{
-	constructor(pos = new Vector(0,0)){
-	super(pos, new Vector(0,3));
-		this.initPos = pos;
-	};
+	constructor(pos) {
+		 let speed = new Vector(0, 3);
+		 super(pos, speed);
+		 this.startPos = pos;
+	 }
 
-	get type(){
-		return 'firerain';
-	}
-
-	handleObstacle(){
-		this.pos = this.initPos;
-	}
+	 handleObstacle() {
+		 this.pos = this.startPos;
+	 }
 };
 
 class Coin extends Actor{
@@ -403,4 +400,4 @@ const actorDict = {
 
 const parser = new LevelParser(actorDict);
 runGame(schemas, parser, DOMDisplay)
-  .then(() => alert('Красава! Дай пять!'));
+  .then(() => console.log('Вы выиграли приз!'));
