@@ -1,5 +1,6 @@
 'use strict';
 
+//позволяет контролировать расположение объектов
 class Vector {
 	constructor(x = 0,y = 0){
 		this.x = x;
@@ -18,6 +19,7 @@ class Vector {
 	}
 };
 
+//позволит контролировать все движущиеся объекты на игровом поле и контролировать их пересечение
 class Actor{
 	constructor(pos = new Vector(0,0), size = new Vector(1,1), speed = new Vector(0,0)) {
 		if (!(pos instanceof Vector) || !(size instanceof Vector) || !(speed instanceof Vector)) {
@@ -55,46 +57,41 @@ class Actor{
 			throw new Error(`Аргумент должен быть типа Actor`);
 		}
 
-		if(this === actor){
+		if(actor === this){
 			return false;
 		}
 
-		if((this.pos.x === actor.pos.x + actor.size.x)||(this.pos.y === actor.pos.y + actor.size.y)
-      ||(actor.pos.x === this.pos.x + actor.size.x)||(actor.pos.y === this.pos.y + actor.size.y)) {
-			return false;
-		  }
-		 else if(((this.pos.x <= actor.pos.x + actor.size.x) && (this.pos.x >= actor.pos.x) && (this.pos.y <= actor.pos.y + actor.size.y) && (this.pos.y >= actor.pos.y)) ||
-		 ((this.pos.x <= actor.pos.x + actor.size.x) && (this.pos.x >= actor.pos.x) && (this.pos.y + this.size.y <= actor.pos.y + actor.size.y) && (this.pos.y + this.size.y >= actor.pos.y)) ||
-		 ((this.pos.x + this.size.x <= actor.pos.x + actor.size.x) && (this.pos.x + this.size.x >= actor.pos.x) && (this.pos.y <= actor.pos.y + actor.size.y) && (this.pos.y >= actor.pos.y)) ||
-		 ((this.pos.x + this.size.x <= actor.pos.x + actor.size.x) && (this.pos.x + this.size.x >= actor.pos.x) && (this.pos.y + this.size.y <= actor.pos.y + actor.size.y) &&
-       (this.pos.y + this.size.y >= actor.pos.y)) ||
-		 ((actor.pos.x <= this.pos.x + this.size.x) && (actor.pos.x >= this.pos.x) && (actor.pos.y <= this.pos.y + this.size.y) && (actor.pos.y >= this.pos.y)) ||
-		 ((actor.pos.x <= this.pos.x + this.size.x) && (actor.pos.x >= this.pos.x) && (actor.pos.y + actor.size.y <= this.pos.y + this.size.y) && (actor.pos.y + actor.size.y >= this.pos.y)) ||
-		 ((actor.pos.x + actor.size.x <= this.pos.x + this.size.x) && (actor.pos.x + actor.size.x >= this.pos.x) && (actor.pos.y <= this.pos.y + this.size.y) && (actor.pos.y >= this.pos.y)) ||
-		 ((actor.pos.x + actor.size.x <= this.pos.x + this.size.x) && (actor.pos.x + actor.size.x >= this.pos.x) && (actor.pos.y + actor.size.y <= this.pos.y + this.size.y) &&
-       (actor.pos.y + actor.size.y >= this.pos.y))) {
-       return true;
-        }
-	}
+		return (this.right > actor.left &&
+					 this.top < actor.bottom &&
+					 this.left < actor.right &&
+					 this.bottom > actor.top);
+		}
 };
 
+// Игровое поле
 class Level{
 	constructor(grid=[], actors=[]){ //сетку игрового поля с препятствиями и список движущихся объектов
-		this.grid = grid; //сетку игрового поля
+		this.grid = grid; //сетку игрового поля, двумерный массив
 		this.actors = actors; // список движущихся объектов
-    for(const actor of actors) {
+    for(let actor of actors) {
       if(actor.type === 'player') {
         this.player = actor;
         break;
       }
     }
-		this.height = grid.length; //высоту игрового поля, равное числу строк в сетке из первого аргумента.
-		this.width = 0; // ширину игрового поля, равное числу ячеек в строке сетки из первого аргумента
+		this.height = this.grid.length; //высоту игрового поля, равное числу строк в сетке из первого аргумента.
+		this.width = this.grid.reduce((memo, item) => {
+        if (memo > item.length) {
+          return memo;
+        } else {
+          return item.length;
+        }
+      }, 0); // ширину игрового поля, равное числу ячеек в строке сетки из первого аргумента
     this.status = null;
     this.finishDelay = 1;
 
 		if(grid.length !== 0){
-			for(const arr of this.grid){
+			for(let arr of this.grid){
 				if(typeof arr != 'undefined'){
 					if(this.width < arr.length){
 						this.width = arr.length;
@@ -105,26 +102,14 @@ class Level{
 	};
 
 	isFinished(){
-		if(this.status != null && this.finishDelay < 0) {
-      return true;
-    }
+		 return this.status != null && this.finishDelay < 0;
 	};
 
 	actorAt(actor){
 		if(!(actor instanceof Actor)){
 			throw new Error('Движущийся объект должен иметь тип Actor');
 		}
-
-		if(this.grid === undefined ){
-			return undefined;
-		}
-
-		for(let i of this.actors){
-			if (typeof i !='undefined' && actor.isIntersect(i)){
-				return i;
-			}
-		}
-		return undefined;
+		return this.actors.find(memo => memo.isIntersect(actor));
 	};
 
 	obstacleAt(pos, size){
@@ -148,13 +133,12 @@ class Level{
 		for (var y = yStart; y < yEnd; y++) {
 			for (var x = xStart; x < xEnd; x++) {
 				const l = this.grid[y][x];
-				if (typeof l!== 'undefined') {
+				if (l) {
 					return l;
 				}
 			}
 		}
-		return undefined;
-	}
+	};
 
 	removeActor(actor){
 		const i = this.actors.indexOf(actor);
@@ -210,48 +194,37 @@ class LevelParser{
 		return symbols[symbol];
 	};
 
-	createGrid(strings){
-		var arr = [];
-		var i = 0;
-		for(var string of strings){
-			arr[i] = [];
-			for(let j = 0; j < string.length; j++){
-				const symb = string.charAt(j);
-				if(symb === 'x' || symb === 'o' || symb === '!'){
-					arr[i].push(this.obstacleFromSymbol(symb));
-				}else{
-					arr[i].push(undefined);
-				}
-			}
-			i++;
-		}
-		return arr;
+	createGrid(plan){
+		return plan.map(line => {
+			let str = [];
+ 		  for(let i = 0; i < line.length; i++) {
+ 		    str.push(this.obstacleFromSymbol(line[i]));
+ 		  }
+ 		  return str;
+ 		})
 	};
 
-	createActors(strings){
-		const array = [];
-		let j = 0;
-		for(let i = 0; i < strings.length; i++ ){
-			const str = strings[i];
-			for(let n = 0; n < str.length; n++){
-				const symbol = str.charAt(n);
-				const act = this.actorFromSymbol(symbol);
-				if(typeof act === 'function'){
-					const actor = new act();
-					if(actor instanceof Actor){
-						array[j] = new act();
-						array[j].pos = new Vector(n,i);
-						j++;
+	createActors(plan) {
+	let thisPlan = this;
+	return plan.reduce(function(prev, rowY, y) {
+		[...rowY].forEach(function(rowX, x) {
+			if (rowX) {
+				let constructor = thisPlan.actorFromSymbol(rowX); 
+				if (constructor && typeof constructor === 'function') {
+					let actor = new constructor (new Vector(x, y));
+					if (actor instanceof Actor) {
+						prev.push(actor);
 					}
 				}
 			}
-		}
-		return array;
-	};
+		});
+		return prev;
+	}, []);
+}
 
-	parse(Arrstrings){
-	return new Level(this.createGrid(Arrstrings), this.createActors(Arrstrings));
-	}
+parse(plan) {
+	return new Level(this.createGrid(plan), this.createActors(plan));
+}
 };
 
 class Fireball extends Actor{
@@ -311,7 +284,7 @@ class FireRain extends Fireball{
 class Coin extends Actor{
 	constructor(pos=new Vector(1,1)){
 		super(new Vector(pos.x + 0.2, pos.y + 0.1), new Vector(0.6,0.6));
-		this.initPos = pos;
+		this.initPos = this.pos;
 		this.springSpeed = 8;
 		this.springDist = 0.07;
 		this.spring = Math.random() * 2*Math.PI
@@ -332,7 +305,7 @@ class Coin extends Actor{
 	getNextPosition(time = 1){
 		this.updateSpring(time);
 		const springVector = this.getSpringVector();
-		return new Vector(this.pos.x,this.pos.y + springVector.y*time);
+	return this.initPos.plus(springVector);
 	};
 
 	act(time){
